@@ -33,7 +33,8 @@ class AyyBot():
 
 	def lmaoCheck(self,comments): #checks if a comment containing "Lmao is already present"
 		for comment in comments:
-			if  "lmao" in str(comment.body):
+			
+			if  "lmao" in str(comment.body).lower():
 				return False
 		return True
 
