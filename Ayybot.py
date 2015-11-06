@@ -28,7 +28,7 @@ class AyyBot():
 
 	def checkSubmissions(self,subReddit): #searches front page for keywords via recurseComments(), launching point for other funcs
 		currentSub=r.get_subreddit(subReddit)
-		for submission in currentSub.get_hot(limit=5):
+		for submission in currentSub.get_hot(limit=200):
 			safeprint("\nTitle: {0} ".format( submission.title))
 			self.recurseComments(submission.comments)  
 
@@ -39,12 +39,14 @@ class AyyBot():
 					safeprint("Comment: {0}".format(comment.body))
 					if self.ayyCheck(comment.body):
 						if self.lmaoCheck(comment):
-							safeprint("Okay to comment")
+							safeprint("Okay to comment, no Lmao detected")
 							comment.reply(self.lmaoGenerate(comment.body))
 							safeprint ("commented '{0}'.\n".format(self.lmaoGenerate(comment.body)))
 							time.sleep(600)
 						else: 
-							safeprint("Not Okay to comment\n")
+							safeprint("Not okay to comment\n")
+					else:
+						safeprint("Ayy syntax fail, Not okay to comment\n")
 				self.recurseComments(comment.replies)
 			except AttributeError:
 				pass
@@ -56,18 +58,19 @@ class AyyBot():
 				safeprint("preceding char failure")
 				return False
 		for i in range ((startIndex), len(ayy)-1):
+			#safeprint("testing {0} against {1}".format(ayy[i],ayy[i+1]))
 			if ayy[i].lower()=="a":
 				if (ayy[i+1].lower()!= "y") and (ayy[i+1].lower()!="a"):
-					safeprint("'A' failure in Ayy")
+					safeprint("'A' failure in {0}, {1} is invalid".format(ayy, ayy[i+1]))
 					return False
 			if ayy[i].lower()=="y":
-				if (ayy[i+1].lower()!= "y") and (ayy[i+1].isalpha() != False):
-					safeprint("'Y' failure in Ayy")
+				if (ayy[i+1].lower()!= "y") and (ayy[i+1].isalpha() ==True):
+					safeprint("'Y' failure in {0}, {1} is invalid".format(ayy, ayy[i+1]))
 					return False
 			if (ayy[i].lower()!="a") and (ayy[i].lower()!="y"):
-				safeprint("Valid Ayy")
+				safeprint("Valid {0}".format(ayy))
 				return True
-		safeprint("Valid Ayy")
+		safeprint("Valid {0}".format(ayy))
 		return True
 
 	def lmaoCheck(self,comment): #checks if a comment containing "Lmao is already present"
@@ -106,4 +109,4 @@ if __name__ == "__main__":
 			safeprint("Active Bot: {0}".format(bot.authenticatedUser))
 			bot.checkSubmissions(approvedSubs.approved)
 			bot.refreshToken()
-			time.sleep(600)
+			time.sleep(1800)# checks reddit every 30 mins, just like I do 

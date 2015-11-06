@@ -1,1 +1,1 @@
-approved=("testingground4bots")
+approved=("all")
