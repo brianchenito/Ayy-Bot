@@ -5,15 +5,14 @@ import time
 import loginCredentials as cred # this only exists locally, you need to make your own
 import approvedSubs
 
-
-def safeprint(s): # to help handle weird unicode stuff, its not gonna render right but it wont throw errors
-    try:
-        print(s)
-    except UnicodeEncodeError:
-        if sys.version_info >= (3,):
-            print(s.encode('utf8').decode(sys.stdout.encoding))
-        else:
-            print(s.encode('utf8'))
+def safeprint(safe): # to help handle weird unicode stuff, its not gonna render right but it wont throw errors
+	try:
+		print(safe)
+	except UnicodeEncodeError:
+		if sys.version_info >= (3,):
+			print(safe.encode('utf8').decode(sys.stdout.encoding))
+		else:
+			print(safe.encode('utf8'))
 
 class AyyBot():
 	def __init__(self):
@@ -26,87 +25,100 @@ class AyyBot():
 	def refreshToken(self): 
 		r.refresh_access_information(cred.redditRefresh)
 
-	def checkSubmissions(self,subReddit): #searches front page for keywords via recurseComments(), launching point for other funcs
+	def checkComments(self,subReddit): #searches front page for keywords via recurseComments(), launching point for other funcs
 		currentSub=r.get_subreddit(subReddit)
-		for submission in currentSub.get_hot(limit=200):
-			safeprint("\nTitle: {0} ".format( submission.title))
-			self.recurseComments(submission.comments)  
+		currentComments=currentSub.get_comments(limit=5000)
+		self.recurseComments(currentComments)
 
-	def recurseComments(self,comments):	#digs through comment trees for "Ayy, checks validity of Ayy"
+
+	def recurseComments(self,comments):
 		for comment in comments:
-			try:
-				if "ayy" in str(comment.body).lower():
-					safeprint("Comment: {0}".format(comment.body))
-					if self.ayyCheck(comment.body):
-						if self.lmaoCheck(comment):
-							safeprint("Okay to comment, no Lmao detected")
-							comment.reply(self.lmaoGenerate(comment.body))
-							safeprint ("commented '{0}'.\n".format(self.lmaoGenerate(comment.body)))
-							time.sleep(600)
-						else: 
-							safeprint("Not okay to comment\n")
-					else:
-						safeprint("Ayy syntax fail, Not okay to comment\n")
-				self.recurseComments(comment.replies)
-			except AttributeError:
-				pass
+			print(".", end="")
+			if "ayy" in str(comment.body).lower(): 
+				safeprint("\nComment: {0} ".format(comment.body))
+				if self.ayyCheck(comment.body)[2]!=0:
+					startIndex=self.ayyCheck(comment.body)[1]
+					endIndex=self.ayyCheck(comment.body)[2] #optimize later
+					if self.lmaoCheck(comment):
+						print("\n okay to comment\n")
+						comment.reply(self.lmaoGenerate(comment.body,startIndex,endIndex))
+						time.sleep(500)
 
-	def ayyCheck(self,ayy):    #verifies
-		startIndex=ayy.lower().index("a")
-		if ayy[0].lower()!="a":
-			if ayy[startIndex-1].isalpha() != False:
-				safeprint("preceding char failure")
-				return False
-		for i in range ((startIndex), len(ayy)-1):
-			#safeprint("testing {0} against {1}".format(ayy[i],ayy[i+1]))
-			if ayy[i].lower()=="a":
-				if (ayy[i+1].lower()!= "y") and (ayy[i+1].lower()!="a"):
-					safeprint("'A' failure in {0}, {1} is invalid".format(ayy, ayy[i+1]))
-					return False
-			if ayy[i].lower()=="y":
-				if (ayy[i+1].lower()!= "y") and (ayy[i+1].isalpha() ==True):
-					safeprint("'Y' failure in {0}, {1} is invalid".format(ayy, ayy[i+1]))
-					return False
-			if (ayy[i].lower()!="a") and (ayy[i].lower()!="y"):
-				safeprint("Valid {0}".format(ayy))
-				return True
-		safeprint("Valid {0}".format(ayy))
-		return True
+	def ayyCheck(self,ayy):# checks validity of comment syntax, also outputs start and end of the ayy
+		lowAyy=ayy.lower()
+		startIndex=lowAyy.index("ayy")
+		for i in range(lowAyy.index("ayy"), lowAyy.index("a"),-1 ):
+			if ayy[i-1]!="a":
+				startIndex=i
+				break
+		endIndex=startIndex
+		if len(ayy.split())>1:
+			print("Ayy fail, multiword\n")
+			return (ayy,0,0)
+		for i in range(startIndex, len(ayy)-1):
+			if lowAyy[i]=="a":
+				endIndex+=1
+				if lowAyy[i+1] !="a" and lowAyy[i+1]!="y":
+					print("Ayy fail, syntax error(a)")
+					return (ayy,0,0)
+			elif lowAyy[i]=="y":
+				if lowAyy[i+1]=="y":
+					endIndex+=1
+				if lowAyy[i+1]!="y" and lowAyy[i+1].isalpha():
+					print("Ayy fail, syntax error(y)")
+					return(ayy,0,0)
+		return(ayy,startIndex,endIndex)
 
 	def lmaoCheck(self,comment): #checks if a comment containing "Lmao is already present"
-		if  "lmao" in str(comment.body).lower():
-			safeprint("found lmao already in comments")
-			return False
 		commentsCheck= comment.replies
-		for comment in commentsCheck:
+		try:
 			if  "lmao" in str(comment.body).lower():
-				safeprint("found lmao already in comments")
+				print("found lmao already in comments")
 				return False
-		safeprint("Valid Lmao")
-		return True
+			for comment in commentsCheck:
+				if  "lmao" in str(comment.body).lower():
+					print("found lmao already in comments")
+					return False	
+			print("no reply 'Lmao' found")
+			return True
+		except AttributeError:
+			print(" hit moreComments(), safe to assume an 'Lmao' is not present")
+			return True
 
-	def lmaoGenerate(self, ayy):
-		startIndex=ayy.lower().index("ayy")
+	def lmaoGenerate(self, ayy, startIndex,endIndex): #builds lmao comment
+		lmaoList=[]
+		for i in range(0, startIndex):
+			lmaoList.append(ayy[i])
 		if ayy[startIndex].isupper():
 			if ayy[startIndex+1].isupper():
-				lmaoList=["LMA"]
+				lmaoList.append("LMA")
 			else:
-				lmaoList=["Lma"]
+				lmaoList.append("Lma")
 		else:
-			lmaoList=["lma"]	
-
-		for i in range(0,ayy.lower().count("y")-1):
-			if ayy[startIndex+1+i].isupper():
-				lmaoList.append("o".upper())
+			lmaoList.append("lma")
+		for i in range(startIndex+1,endIndex):
+			if ayy[i].lower()=="a":
+				if ayy[i].isupper():
+					lmaoList.append("a".upper())
+				else:
+					lmaoList.append("a")
 			else:
-				lmaoList.append("o")
-		return "".join(lmaoList)
+				if ayy[i].isupper():
+					lmaoList.append("o".upper())
+				else:
+					lmaoList.append("o")
+		for i in range(endIndex+1, len(ayy)):
+			lmaoList.append(ayy[i])
+		generatedLmao=''.join(lmaoList)
+		safeprint("commenting:\n{0}" .format(generatedLmao))
+		return generatedLmao
 
 if __name__ == "__main__":
 		bot=AyyBot()
 
 		while True:
-			safeprint("Active Bot: {0}".format(bot.authenticatedUser))
-			bot.checkSubmissions(approvedSubs.approved)
+			print("Active Bot: {0}".format(bot.authenticatedUser))
+			bot.checkComments(approvedSubs.approved)
 			bot.refreshToken()
-			time.sleep(1800)# checks reddit every 30 mins, just like I do 
+			print("refreshing search\n")
+
