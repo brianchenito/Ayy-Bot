@@ -67,6 +67,10 @@ class AyyBot():
 				if lowAyy[i+1]!="y" and lowAyy[i+1].isalpha():
 					print("Ayy fail, syntax error(y)")
 					return(ayy,0,0)
+		if startIndex!=0:
+			if ayy[startIndex-1].lower()=="g":
+				print("ayy fail, edge case (G)")
+				return(0,0)# special edge case exception
 		return(ayy,startIndex,endIndex)
 
 	def lmaoCheck(self,comment): #checks if a comment containing "Lmao is already present"
@@ -117,8 +121,12 @@ if __name__ == "__main__":
 		bot=AyyBot()
 
 		while True:
-			print("Active Bot: {0}".format(bot.authenticatedUser))
-			bot.checkComments(approvedSubs.approved)
-			bot.refreshToken()
-			print("refreshing search\n")
-
+			try: # sometimes the api times out, or the servers go down
+				print("Active Bot: {0}".format(bot.authenticatedUser))
+				bot.checkComments(approvedSubs.approved)
+				bot.refreshToken()
+				print("refreshing search\n")
+			except:
+				time.sleep(600)
+				pass
+			
