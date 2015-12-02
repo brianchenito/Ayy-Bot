@@ -42,15 +42,18 @@ class AyyBot():
 					if self.lmaoCheck(comment):
 						print("\n okay to comment\n")
 						comment.reply(self.lmaoGenerate(comment.body,startIndex,endIndex))
-						time.sleep(500)
+						time.sleep(300)
+						
 
 	def ayyCheck(self,ayy):# checks validity of comment syntax, also outputs start and end of the ayy
 		lowAyy=ayy.lower()
 		startIndex=lowAyy.index("ayy")
 		for i in range(lowAyy.index("ayy"), lowAyy.index("a"),-1 ):
-			if ayy[i-1]!="a":
+			if lowAyy[i-1]!="a":
 				startIndex=i
 				break
+			if i==(lowAyy.index("a")+1):
+				startIndex=lowAyy.index("a")
 		endIndex=startIndex
 		if len(ayy.split())>1:
 			print("Ayy fail, multiword\n")
@@ -70,7 +73,13 @@ class AyyBot():
 		if startIndex!=0:
 			if ayy[startIndex-1].lower()=="g":
 				print("ayy fail, edge case (G)")
-				return(0,0)# special edge case exception
+				return(ayy,0,0)# special edge case exception
+			if ayy[startIndex-1].lower()=="h":
+				print("ayy fail, edge case (H)")
+				return(ayy,0,0)# special edge case exception
+			if ayy[startIndex-1].lower()=="y":
+				print("ayy fail, edge case (Y)")
+				return(ayy,0,0)# special edge case exception				
 		return(ayy,startIndex,endIndex)
 
 	def lmaoCheck(self,comment): #checks if a comment containing "Lmao is already present"
@@ -83,11 +92,13 @@ class AyyBot():
 				if  "lmao" in str(comment.body).lower():
 					print("found lmao already in comments")
 					return False	
+				if str(comment.author)=="Ayy_Bot":
+					return False
 			print("no reply 'Lmao' found")
 			return True
 		except AttributeError:
-			print(" hit moreComments(), safe to assume an 'Lmao' is not present")
-			return True
+			print(" hit moreComments()")# it turns out things start getting weird with extremely deep trees, unsafe to return true
+			return False
 
 	def lmaoGenerate(self, ayy, startIndex,endIndex): #builds lmao comment
 		lmaoList=[]
@@ -125,8 +136,9 @@ if __name__ == "__main__":
 				print("Active Bot: {0}".format(bot.authenticatedUser))
 				bot.checkComments(approvedSubs.approved)
 				bot.refreshToken()
-				print("refreshing search\n")
-			except:
-				time.sleep(600)
+				print("\nrefreshing search")
+			except Exception as e:
+				print("\nError {0}".format(str(e)))
+				time.sleep(300)
 				pass
 			
